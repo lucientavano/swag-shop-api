@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
+//var routes = require('./routes')
 
 var db = mongoose.connect('mongodb://localhost/swag-shop');
 
@@ -10,6 +11,7 @@ var WishList = require('./model/wishlist');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
+//app.use('/routes', routes);
 
 app.post('/product', function(request, response) {
     var product = new Product();
@@ -36,6 +38,40 @@ app.get('/product', function(request, response) {
     
 });
 
+app.get('/wishlist', function(request, response){
+    WishList.find({}, function(err, wishLists) {
+        response.send(whishLists);
+    });
+});
+
+app.post('/wishlist', function(request, response) {
+    var wishList = new WishList();
+    wishList.title = request.body.title;
+    
+    wishList.save(function(err, newWishList){
+        if (err) {
+            response.status(500).send({error: "Could not create wish list"})
+        } else {
+            response.send(newWishList);
+        }
+    });
+});
+
+app.put('wishlist/product/add', function(request, response){
+   Product.findOne({_id: request.body.productId}, function(err, product) {
+       if (err) {
+           response.status(500).send({error: "Could not add item"});
+       } else {
+           WishList.update({_id: request.body.wishListId}, {$addToSet: {products: product._id}}, function(err, wishList) {
+               if (err) {
+                   response.status(500).send({error: "Could not add item to wishlist"});
+               } else {
+                   response.send(wishList);
+               }
+           });
+       }
+   }) ;
+});
 
 
 app.listen(3000, function(){
